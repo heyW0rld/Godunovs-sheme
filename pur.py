@@ -1,4 +1,6 @@
+from decimal import Decimal
+
 class PUR:
-    p = 0
-    u = 0
-    r = 0
+    p = Decimal(0)
+    u = Decimal(0)
+    r = Decimal(0)
