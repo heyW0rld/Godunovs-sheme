@@ -1,8 +1,8 @@
 #ToDo
 #Создавать слой, задавая количество ячеек в нем в конструкторе
 
+from math import tau
 import matplotlib.pyplot as plt
-import math
 import copy
 from decimal import Decimal
 	
@@ -19,11 +19,11 @@ layers = []                 #Расчетная сетка
 l = Decimal(0.1)            #начальное положение
 N = 10                      #количество разбиений
 h_0 = l / N                 #шаг по кооординате на 0 слое
-tau_0 = Decimal(10e-4)      #шаг по времени на 0 слое
+tau_0 = Decimal(10e-5)      #шаг по времени на 0 слое
 kappa = Decimal(1.4)        #показатель адиабаты
 S = Decimal(0.03)           #сечение снаряда
 M = Decimal(3)              #масса снаряда
-L = Decimal(3)              #длина ствола
+L = Decimal(3)           #длина ствола
 
 
 #Задание начальных параметров
@@ -78,6 +78,7 @@ def calc_PUR(cell_prev: Cell, cell_current: Cell, cell_prev_next: Cell, cell_cur
     #                                                         (1 - (1 + (kappa + 1) / (2 * c(p(), ro())) * p() * S / M * tau) ** (2 / (kappa + 1)))
     
     u_m, p_m = calc_pur.formul_1_2(cell_prev, cell_current)
+
     ro_m = Decimal(0)
     cell_current.pur.p = p_m
     cell_current.pur.u = u_m
@@ -95,34 +96,39 @@ def calc_PUR(cell_prev: Cell, cell_current: Cell, cell_prev_next: Cell, cell_cur
 
     if p_m <= p_prev and p_m <= p_next:
         if deltax/tau > u_cur:
-            ro_m = r_prev*(p_m/p_prev)**(1/kappa)
+            ro_m = r_prev*(p_m/p_prev)**(Decimal(1)/kappa)
         else:
-            ro_m = r_next*(p_m/p_next)**(1/kappa)
+            ro_m = r_next*(p_m/p_next)**(Decimal(1)/kappa)
 
     elif p_m > p_prev and p_m <= p_next:
         u_m, p_m = calc_pur.formul_1_4(cell_prev, cell_current)
         if deltax/tau > u_cur:
-            ro_m = r_prev*((kappa+1)*p_m + (kappa-1)*p_prev) / \
-                ((kappa - 1)*p_m + (kappa+1)*p_prev)
+            ro_m = r_prev*((kappa+Decimal(1))*p_m + (kappa-Decimal(1))*p_prev) / \
+                ((kappa - Decimal(1))*p_m + (kappa+Decimal(1))*p_prev)
         else:
-            ro_m = r_next*(p_m/p_next)**(1/kappa)
+            ro_m = r_next*(p_m/p_next)**(Decimal(1)/kappa)
 
     elif p_m <= p_prev and p_m > p_next:
         u_m, p_m = calc_pur.formul_1_3(cell_prev, cell_current)
         if deltax/tau > u_cur:
-            ro_m = r_prev*(p_m/p_prev)**(1/kappa)
+            ro_m = r_prev*(p_m/p_prev)**(Decimal(1)/kappa)
         else:
-            ro_m = r_next*((kappa+1)*p_m + (kappa-1)*p_next) / \
-                ((kappa - 1)*p_m + (kappa+1)*p_next)
+            ro_m = r_next*((kappa+Decimal(1))*p_m + (kappa-Decimal(1))*p_next) / \
+                ((kappa - Decimal(1))*p_m + (kappa+Decimal(1))*p_next)
 
     elif p_m > p_prev and p_m > p_next:
         u_m, p_m = calc_pur.formul_3_4(cell_prev, cell_current)
         if deltax/tau > u_cur:
-            ro_m = r_prev*((kappa+1)*p_m + (kappa-1)*p_prev) / \
-                ((kappa - 1)*p_m + (kappa+1)*p_prev)
+            ro_m = r_prev*((kappa+Decimal(1))*p_m + (kappa-Decimal(1))*p_prev) / \
+                ((kappa - Decimal(1))*p_m + (kappa+Decimal(1))*p_prev)
         else:
-            ro_m = r_next*((kappa+1)*p_m + (kappa-1)*p_next) / \
-                ((kappa - 1)*p_m + (kappa+1)*p_next)
+            ro_m = r_next*((kappa+Decimal(1))*p_m + (kappa-Decimal(1))*p_next) / \
+                ((kappa - Decimal(1))*p_m + (kappa+Decimal(1))*p_next)
+
+    u_m = abs(u_m)
+    p_m = abs(p_m)
+    if p_m < -0.0001 or u_m < -0.0001 or ro_m < -0.0001:
+        print("")
 
     cell_current.pur.p = p_m
     cell_current.pur.u = u_m
@@ -142,18 +148,18 @@ def calc_last_cell(cell_prev: Cell, cell_current: Cell, cell_prev_next: Cell, ce
         return Decimal.sqrt(kappa * p / r)
 
     def p() -> Decimal:
-        return  p_prev * (1 - (kappa - 1) / (2 * c(p_prev, r_prev)) * (u_cur - u_prev)) ** (2 * kappa / (kappa - 1))
+        return  p_prev * (Decimal(1) - (kappa - Decimal(1)) / (Decimal(2) * c(p_prev, r_prev)) * (u_cur - u_prev)) ** (Decimal(2) * kappa / (kappa - Decimal(1)))
 
     def ro() -> Decimal:
-        return r_prev * (p() / p_prev) ** (1 / kappa)
+        return r_prev * (p() / p_prev) ** (Decimal(1) / kappa)
 
     def x_n1() -> Decimal:
-        return x_cur + (u_cur + 2 * c(p(), ro()) / (kappa - 1)) * tau + 2 * c(p(), ro()) ** 2 / (kappa-1) * M / (S * p())* \
-                                                            (1 - (1 + (kappa + 1) / (2 * c(p(), ro())) * p() * S / M * tau) ** (2 / (kappa + 1)))
+        return x_cur + (u_cur + Decimal(2) * c(p(), ro()) / (kappa - (Decimal(1))) * tau + Decimal(2) * c(p(), ro()) ** Decimal(2) / (kappa-Decimal(1)) * M / (S * p())* \
+                                                            (Decimal(1) - (Decimal(1) + (kappa + Decimal(1)) / (Decimal(2) * c(p(), ro())) * p() * S / M * tau) ** (Decimal(2) / (kappa + Decimal(1)))))
 
     def u_n1() -> Decimal:
-        return u_cur + 2 * c(p(), ro()) / (kappa - 1) * (1 - (1 + (kappa + 1) / (2 * c(p(), ro())) * p() * S / M * tau) \
-                                                                                        ** (-(kappa - 1) / (kappa + 1)))
+        return u_cur + Decimal(2) * c(p(), ro()) / (kappa - Decimal(1)) * (Decimal(1) - (Decimal(1) + (kappa + Decimal(1)) / (Decimal(2) * c(p(), ro())) * p() * S / M * tau) \
+                                                                                        ** (-(kappa - Decimal(1)) / (kappa + Decimal(1))))
     
     cell_current_next.x = x_n1()
     
@@ -164,15 +170,17 @@ def calc_last_cell(cell_prev: Cell, cell_current: Cell, cell_prev_next: Cell, ce
     u_cur_n1 = pur.u
     u_prev_n1 = cell_prev_next.pur_midl.u   
     def p_n1() -> Decimal:
-        return p_prev_n1 * (1 - (kappa - 1) / (2 * c(p_prev, r_prev)) * (u_cur_n1 - u_prev_n1)) ** (2 * kappa / (kappa - 1))
+        return p_prev_n1 * (Decimal(1) - (kappa - Decimal(1)) / (Decimal(2) * c(p_prev, r_prev)) * (u_cur_n1 - u_prev_n1)) ** (Decimal(2) * kappa / (kappa - Decimal(1)))
     pur.p = p_n1()
 
     r_prev_n1 = cell_prev_next.pur_midl.r
     p_cur_n1 = pur.p
     def r_n1() -> Decimal:
-        return  r_prev_n1 * (p_cur_n1 / p_prev_n1) ** (1/kappa)
+        return  r_prev_n1 * (p_cur_n1 / p_prev_n1) ** (Decimal(1)/kappa)
 
     pur.r = r_n1()      
+    if pur.p < -0.0001 or pur.r < -0.0001 or pur.u < -0.0001:
+        print("")
 
     cell_current_next.pur = pur
 
@@ -205,41 +213,43 @@ def calc_next_midl_cell():
         u_midl = cur_layer.cells[i].pur_midl.u
 
         def ru_next_midl() -> Decimal:
-            return r_midl * u_midl * h / h1 + ru_next * delta_x_next / h1 - ru_cur * delta_x_cur / h1 - ((r_next * u_next ** 2 + p_next) -  \
-                                                                                                            (r_cur * u_cur ** 2 + p_cur)) * tau_cur / h1 
+            return r_midl * u_midl * h / h1 + ru_next * delta_x_next / h1 - ru_cur * delta_x_cur / h1 - ((r_next * u_next ** Decimal(2) + p_next) -  \
+                                                                                                            (r_cur * u_cur ** Decimal(2) + p_cur)) * tau_cur / h1 
 
         def e(p, r) -> Decimal:
-            return p / (r * (kappa - 1))
+            return p / (r * (kappa - Decimal(1)))
 
         def reu2() -> Decimal:
-            return r_midl * (e(p_midl, r_midl) + u_midl ** 2 / 2) * h / h1 + (r_next * (e(p_next, r_next) + u_next ** 2 / 2)) * delta_x_next / h1 - \
-                                                                                        (r_cur * (e(p_cur, r_cur) + u_cur ** 2 / 2)) * delta_x_cur / h1 - \
-                                                                                            ((r_next * u_next * (e(p_next, r_next) + u_next ** 2 / 2) + p_next * u_next) - \
-                                                                                                (r_cur * u_cur * (e(p_cur, r_cur) + u_cur ** 2 / 2) + p_cur * u_cur)) * tau_cur / h1
+            return r_midl * (e(p_midl, r_midl) + u_midl ** Decimal(2) / Decimal(2)) * h / h1 + (r_next * (e(p_next, r_next) + u_next ** Decimal(2) / Decimal(2))) * delta_x_next / h1 - \
+                                                                                        (r_cur * (e(p_cur, r_cur) + u_cur ** Decimal(2) / Decimal(2))) * delta_x_cur / h1 - \
+                                                                                            ((r_next * u_next * (e(p_next, r_next) + u_next ** Decimal(2) / Decimal(2)) + p_next * u_next) - \
+                                                                                                (r_cur * u_cur * (e(p_cur, r_cur) + u_cur ** Decimal(2) / Decimal(2)) + p_cur * u_cur)) * tau_cur / h1
 
         def u_next_midl() -> Decimal:
             return ru_next_midl() / r_next_midl()
 
         def e_next_midl() -> Decimal:
-            return reu2() / r_next_midl() - u_next_midl() ** 2 / 2
+            return reu2() / r_next_midl() - u_next_midl() ** Decimal(2) / Decimal(2)
 
         def p_next_midl() -> Decimal:
-            return (kappa - 1) * r_next_midl() * e_next_midl()
+            return (kappa - Decimal(1)) * r_next_midl() * e_next_midl()
 
         
         pur_midl = PUR()
-        pur_midl.p = p_next_midl()
-        pur_midl.u = u_next_midl()
+        pur_midl.p = abs(p_next_midl())
+        pur_midl.u = abs(u_next_midl())
         pur_midl.r = r_next_midl()
+        if pur_midl.p < -0.0001 or pur_midl.r < -0.0001 or pur_midl.u < -0.0001:
+            print("")
         next_layer.cells[i].pur_midl = pur_midl 
         
 def x1(cell_prev, cell_current) -> Decimal:
     def c(p, r) -> Decimal:
         return Decimal.sqrt(kappa * p / r)
     def p() -> Decimal:
-        return  p_prev * (1 - (kappa - 1) / (2 * c(p_prev, r_prev)) * (u_cur - u_prev)) ** (2 * kappa / (kappa - 1))
+        return  p_prev * (Decimal(1) - (kappa - Decimal(1)) / (Decimal(2) * c(p_prev, r_prev)) * (u_cur - u_prev)) ** (Decimal(2) * kappa / (kappa - Decimal(1)))
     def ro() -> Decimal:
-        return r_prev * (p() / p_prev) ** (1 / kappa)
+        return r_prev * (p() / p_prev) ** (Decimal(1) / kappa)
         
 
 
@@ -250,8 +260,8 @@ def x1(cell_prev, cell_current) -> Decimal:
     r_prev = cell_prev.pur_midl.r  
     tau = layers[-1].tau
 
-    return x_cur + (u_cur + 2 * c(p(), ro()) / (kappa - 1)) * tau + 2 * c(p(), ro()) ** 2 / (kappa-1) * M / (S * p())* \
-                                                            (1 - (1 + (kappa + 1) / (2 * c(p(), ro())) * p() * S / M * tau) ** (2 / (kappa + 1)))
+    return x_cur + (u_cur + Decimal(2) * c(p(), ro()) / (kappa - Decimal(1))) * tau + Decimal(2) * c(p(), ro()) ** Decimal(2) / (kappa-Decimal(1)) * M / (S * p())* \
+                                                            (Decimal(1) - (Decimal(1) + (kappa + Decimal(1)) / (Decimal(2) * c(p(), ro())) * p() * S / M * tau) ** (Decimal(2) / (kappa + Decimal(1))))
 
 #Основной алгоритм
 
@@ -260,6 +270,35 @@ x = [0]
 p = [1]
 u = [0]
 r = [1]
+
+def next_tau() -> Decimal:
+    def c(p, r) -> Decimal:
+        return Decimal.sqrt(kappa * p / r)
+
+    cur_layer = layers[-2]
+    next_layer = layers[-1]
+    t_midl_m = []
+    for i in range(1, N):
+        delta_x_next = next_layer.cells[i+1].x - cur_layer.cells[i+1].x
+        delta_x_cur = next_layer.cells[i].x - cur_layer.cells[i].x
+
+
+        w_cur = delta_x_cur / cur_layer.tau
+        w_next = delta_x_next / cur_layer.tau
+
+        u_cur = cur_layer.cells[i].pur.u
+        p_cur = cur_layer.cells[i].pur.p
+        r_cur = cur_layer.cells[i].pur.r
+        u_next = cur_layer.cells[i+1].pur.u
+        p_next = cur_layer.cells[i+1].pur.p
+        r_next = cur_layer.cells[i+1].pur.r
+
+        t_midl_m.append(cur_layer.h / max(c(p_cur, r_cur) + u_cur - w_next, c(p_next, r_next) - u_next - w_cur))
+
+    nu = Decimal(0.9)
+    next_layer.tau = nu * min(t_midl_m)
+
+
 
 def main():
     #Создание и заполнение первого слоя
@@ -270,7 +309,6 @@ def main():
     while layers[-1].x < L:
         #Создание нового слоя
         new_layer = Layer()
-        new_layer.tau = tau_0
         for i in range(N+1):
             new_layer.append_cell(Cell())
         layers.append(new_layer)
@@ -279,7 +317,7 @@ def main():
         layers[-1].cells[N].x = x1(layers[-2].cells[N - 1], layers[-2].cells[N])
         layers[-1].x = layers[-1].cells[N].x
         new_layer.h = layers[-1].cells[N].x / N
-        current_x = 0
+        current_x = Decimal(0)
         for i in range(N+1):
             layers[-1].cells[i].x = current_x
             current_x += layers[-1].h
@@ -297,6 +335,7 @@ def main():
         for i in range(1, N):
             calc_PUR(layers[-2].cells[i-1], layers[-2].cells[i], layers[-1].cells[i-1], layers[-1].cells[i]) 
         
+        next_tau()
         #N-я ячейка 
         if(n == 0):
             prelast_PUR = copy.copy(layers[-2].cells[N-1].pur_midl)
@@ -307,9 +346,14 @@ def main():
         calc_last_cell(layers[-2].cells[N - 1], layers[-2].cells[N], layers[-1].cells[N - 1], layers[-1].cells[N])
         
         n+=1
-        print(layers[-1].x)
+        print("x\t" , layers[-1].x)
+        print("tau\t" , layers[-1].tau)
+        print("h\t" , layers[-1].h)
+        print("p\t" , layers[-1].cells[-1].pur.p)
+        print("u\t" , layers[-1].cells[-1].pur.u)
+        print("r\t" , layers[-1].cells[-1].pur.r)
         y.append(layers[-1].x)
-        x.append(y[-1]+tau_0)
+        x.append(x[-1]+layers[-1].tau)
         p.append(layers[-1].cells[-1].pur.p)
         u.append(layers[-1].cells[-1].pur.u)
         r.append(layers[-1].cells[-1].pur.r)
@@ -318,7 +362,7 @@ def main():
 
 main()
 
-plt.plot(x,y)
+plt.plot(y,x)
 plt.plot(x,p)
 plt.plot(x,u)
 plt.plot(x,r)
