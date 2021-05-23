@@ -1,4 +1,5 @@
 from decimal import Decimal
+from cell import Cell
 
 class Layer:
     h = Decimal(0)

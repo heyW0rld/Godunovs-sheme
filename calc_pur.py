@@ -2,7 +2,7 @@ import math
 import cell
 from decimal import Decimal
 
-EPS = Decimal(10e-6)
+EPS = Decimal(10e-20)
 kappa = Decimal(1.4)
 
 def c(p, ro):
@@ -21,7 +21,7 @@ def Newtone(x, y, f1, f2, f_11, f_12, f_21, f_22) -> Decimal:
         jacob = a11*a22 - a21*a12
         x = x1 - (a22*f11-a12*f22) / jacob
         y = y1 - (-a21*f11+a11*f22) / jacob
-        if (abs(f1(x, y) - f2(x, y)) < EPS):
+        if (Decimal.__abs__(f1(x, y) - f2(x, y)) < EPS):
             return x, y
 
 def formul_1_2(cell_prev, cell_current) -> Decimal: #Проверил
